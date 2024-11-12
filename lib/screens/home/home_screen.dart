@@ -1,0 +1,97 @@
+import 'package:flutter/material.dart';
+import 'package:night_gschallenge/providers/shared_preferences_provider.dart';
+import 'package:night_gschallenge/screens/home/home_body.dart';
+import 'package:night_gschallenge/screens/library/library_screen.dart';
+import 'package:night_gschallenge/screens/mysleep/my_sleep_screen.dart';
+import 'package:night_gschallenge/screens/menu/menu_screen.dart';
+import 'package:night_gschallenge/screens/plan/PlanScreen.dart';
+import 'package:night_gschallenge/widgets/UI/loadingStateCreator.dart';
+import 'package:night_gschallenge/widgets/UI/top_row.dart';
+import 'package:provider/provider.dart';
+import '../../navigators/bottomNavigator.dart';
+
+class HomeScreen extends StatefulWidget {
+  static const routeName = '/home';
+
+  final _pageList = [
+    const HomeBody(),
+    const MySleepScreen(),
+    const PlanScreen(),
+    const LibraryScreen(),
+    MenuScreen()
+  ];
+
+   HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int selectedPageIndex = 0;
+  bool loading = true;
+  bool once = true;
+  String mode = "";
+
+  void switchPageHandler(int selectedIndex) {
+    setState(() {
+      selectedPageIndex = selectedIndex;
+    });
+  }
+
+  void _bottomTabHandler(int selectedIndex) {
+    if (selectedPageIndex == selectedIndex) {
+      return;
+    }
+    setState(() {
+      selectedPageIndex = selectedIndex;
+    });
+  }
+
+  void fetch() async {
+    var spp = Provider.of<sharedPreferencesProvider>(context);
+
+    await spp.init();
+    mode = spp.getValue('launch', 'mode').toString();
+
+    setState(() {
+      loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (once) {
+      fetch();
+      once = false;
+    }
+    return Scaffold(
+      bottomNavigationBar:
+          BottomNavigator(_bottomTabHandler, selectedPageIndex),
+      body: loading
+          ? LoadingStateCreator()
+          : GestureDetector(
+              onHorizontalDragEnd: (details) {
+                Velocity v = details.velocity;
+                if (v.pixelsPerSecond.dx > v.pixelsPerSecond.dy) {
+                  if (selectedPageIndex == 0) {
+                  } else {
+                    switchPageHandler(selectedPageIndex - 1);
+                  }
+                } else {
+                  if (selectedPageIndex == 4) {
+                  } else {
+                    switchPageHandler(selectedPageIndex + 1);
+                  }
+                }
+              },
+              child: ListView(
+                children: [
+                  const TopRow(),
+                  widget._pageList[selectedPageIndex],
+                ],
+              ),
+            ),
+    );
+  }
+}
